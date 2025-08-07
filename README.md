@@ -2,11 +2,12 @@ This repository provides the complete codebase and inputs used to run all experi
 ](https://arxiv.org/abs/2504.17333). It is currently under evaluation as ACM Artifact.
 
 ### How to run
-1. Run `setup.sh`
-2. Run `run_experiments.sh` as a whole, or each command separately
+1. Run `source setup.sh`
+2. Run `./run_experiments.sh` as a whole, or each command separately
     - `experiment_log.log` gives overview of started and finished experiments
     - Terminal output logs per experiment can be found in outputs
-3. Run `generate_figures.sh` as a whole, or each command separately
+    - To drastically reduce the runtime, the evaluation space can be reduced. In the `sweep_*.py` scripts, change the `seq_lengths` variable to exclude `1024` and above.
+3. Run `./generate_figures.sh` as a whole, or each command separately
     - The `results_*.py` files can be run continuously to generate partial figures and print progress
 
 ### Expected results
@@ -22,6 +23,6 @@ The main results are the generated figures, which should look identical to those
 
 Python version: 3.11.9
 
-Corresponding Stream version: commit ae6a778894a2e1d4237e4f7892d46b14ad28bf49
+Corresponding [Stream](https://github.com/KULeuven-MICAS/stream.git) commit: `ae6a778894a2e1d4237e4f7892d46b14ad28bf49`
 
 
