@@ -21,6 +21,7 @@ The main results are the generated figures, which should look identical to those
 ### Info
 
 Python version: 3.11.9
+
 Corresponding Stream version: commit ae6a778894a2e1d4237e4f7892d46b14ad28bf49
 
 
