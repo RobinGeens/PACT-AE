@@ -1,0 +1,4 @@
+# Sphinx
+sphinx==7.1.2
+# Sphinx Theme
+furo

@@ -1,0 +1,10 @@
+zigzag-dse==3.8.1
+seaborn
+matplotlib
+brokenaxes
+numpy
+ruamel.yaml
+torch
+einops
+onnx
+build

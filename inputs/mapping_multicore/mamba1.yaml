@@ -1,0 +1,184 @@
+# Default size for 8192 PEs and 1 core is 64x128
+
+- name: default
+  layer_dimension_names: [B, L, D]
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - L, 1
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32
+
+- name: /norm/ReduceMean
+  layer_dimension_names: [B, L, D]
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32
+
+- name: /in_proj/MatMul
+  layer_dimension_names: [B, L, C, D]
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - C, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32
+
+- name: /conv1d/Conv
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - G, 256
+    D2:
+      - OX, 256
+  intra_core_tiling:
+    - OX, 1
+  inter_core_tiling:
+    - G, 32
+
+- name: /x_proj/MatMul
+  layer_dimension_names: [B, L, C, D] # D is smaller here
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - D, 256
+    D2:
+      - C, 256
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32
+
+- name: /dt_proj_einsum/Einsum # blh,dh->bld
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - H, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32
+
+- name: /mul_delta_A/Einsum # bld,dn->bldn
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /Exp # bldn -> bldn
+  layer_dimension_names: [B, L, D, N]
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /mul_delta_B/Einsum # bld,bln->bldn  # Mamba2: blh,bln->blhn
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /mul_dBx/Einsum # bldn,bld->bldn # Mamba2 blhn,blhp->blhpn
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /SSM
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128 # L can be whatever >1, these nodes are always tiled to L=1 slices
+  inter_core_tiling:
+    - D, 32
+
+- name: /mul_h_C/Einsum # bldn,bln->bld # Mamba2: blhpn,bln->blhp
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /mul_D_x/Einsum # blhp,h->blhp
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - N, 256
+    D2:
+      - D, 256
+  intra_core_tiling:
+    - L, 128
+  inter_core_tiling:
+    - D, 32
+
+- name: /out_proj/MatMul
+  layer_dimension_names: [B, L, C, D]
+  core_allocation:
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+  spatial_mapping:
+    D1:
+      - D, 256
+    D2:
+      - C, 256
+  intra_core_tiling:
+    - L, 1
+  inter_core_tiling:
+    - D, 32

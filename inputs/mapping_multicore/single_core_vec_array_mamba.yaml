@@ -1,0 +1,107 @@
+- name: default
+  core_allocation: [1]
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - H, *
+  spatial_mapping:
+    D2:
+      - D, 1
+
+- name: /in_proj/MatMul
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - D, 64
+    D2:
+      - K, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - K, *
+
+- name: /conv1d/Conv
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - G, 64
+    D2:
+      - OX, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /mul_delta_B/Einsum # blh,bln->blhn
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - L, 64
+    D2:
+      - N, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /mul_delta_A/Mul
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - D, 64
+    D2:
+      - K, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /mul_dBx/Einsum # blhn,blhp->blhpn
+  core_allocation: [1]
+  spatial_mapping:
+    D1:
+      - N, 64
+    D2:
+      - P, 1 #64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /update_states/Einsum # blh,blhpn->blhpn
+  core_allocation: [0]
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /mul_h_C/Einsum # blhpn,bln->blhp
+  core_allocation: [0]
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /mul_D_x/Einsum # blhp,h->blhp
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - L, 64
+    D2:
+      - P, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - L, *
+
+- name: /out_proj/MatMul
+  core_allocation: [0]
+  spatial_mapping:
+    D1:
+      - D, 64
+    D2:
+      - K, 64
+  intra_core_tiling:
+    - D, 1
+  inter_core_tiling:
+    - K, *

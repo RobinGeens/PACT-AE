@@ -1,0 +1,14 @@
+name: quad_core
+cores:
+  0: inputs/cores/array_64.yaml
+  1: inputs/cores/vec_64.yaml
+offchip_core: inputs/cores/dram_400GBps.yaml
+
+core_connectivity: []
+
+core_memory_sharing:
+  # Link all simd units to main cores
+  - 0, 1
+
+bandwidth: 9999999999
+unit_energy_cost: 0
