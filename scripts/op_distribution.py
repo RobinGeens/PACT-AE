@@ -17,23 +17,26 @@ from src.plot_util import BarPlotter
 
 # CSV SAVE LOCATIONS
 TOTAL_CSV_PATH = "outputs/csv/total.csv"
+COLORS = {"OPT-2.7B": "tab:red", "Mamba1-2.7B": "tab:blue", "Ours": "tab:orange"}
 
 
 def plot_ops_and_mem_accesses(df_total: pd.DataFrame):
     # Plot
     plotter = BarPlotter(
         groups=[f"L={seq_len}" for seq_len in SEQ_LENS],
-        bars=[model.name for model in MODELS],
+        bars=[model.name for model in MODELS] + ["Ours"],
         sections=["ops", "mem_accesses"],
         ylabel="Number of operations and memory accesses",
         xtick_rotation=0,
         xtick_ha="center",
         xtick_fontsize=10,
         ytick_fontsize=10,
+        legend_loc="upper left",
+        legend_fontsize=10,
     )
     os.makedirs("outputs/figures", exist_ok=True)
     # plotter.plot_line_four_subplots(df_total, filename="outputs/figures/ops_and_mem_accesses.pdf")
-    plotter.plot_line_four_subplots(df_total, filename="outputs/figures/ops_and_mem_accesses.png")
+    plotter.plot_line_four_subplots(df_total, COLORS, filename="outputs/figures/ops_and_mem_accesses.png")
 
 
 def main():
@@ -43,7 +46,7 @@ def main():
         # Scale ops with num layers
         df_op = scale_ops_with_num_layers(df_op)
         # Get memory accesses dataframe from ops and ai
-        df_total = generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai)
+        df_total = generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai, mem_scaling=8)
         # Save to csv
         os.makedirs(os.path.dirname(TOTAL_CSV_PATH), exist_ok=True)
         df_total.to_csv(TOTAL_CSV_PATH, index=False)

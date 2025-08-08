@@ -62,7 +62,7 @@ def plot_stacked_bars_by_group(df: pd.DataFrame, all_op_types: list, fig_path: s
         groups=[f"L={seq_len}" for seq_len in SEQ_LENS],
         bars=[model.name for model in MODELS],
         sections=all_op_types,
-        ylabel="Latency (ms)",
+        ylabel="Latency [ms]",
         xtick_rotation=0,
         xtick_ha="center",
         colors=colors,
@@ -71,7 +71,7 @@ def plot_stacked_bars_by_group(df: pd.DataFrame, all_op_types: list, fig_path: s
     plotter.plot_two_subplots(
         df,
         filename=fig_path,
-        y_labels=["Time to first token (s)", "Time between tokens (ms)"],
+        y_labels=["Time to first token [s]", "Time between tokens [ms]"],
         scaling_factors=[1e3, 1],
         add_legends=[False, False],
     )

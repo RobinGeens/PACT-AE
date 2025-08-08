@@ -15,7 +15,6 @@ L = 1
 D = MAMBA1_2_8B.d_inner
 N = MAMBA1_2_8B.d_state
 PRECISION = 32  # bits
-print(f"L={L}, D={D}, N={N}")
 
 # order of NODES is used for schedule
 NODES = [
@@ -242,7 +241,7 @@ def get_max_timestep_and_memory_usage_MiB(times, cumulative_memory):
 def plot_cumulative_memory_usage(times, cumulative_memory):
     # Print max memory usage
     max_timestep, max_memory = get_max_timestep_and_memory_usage_MiB(times, cumulative_memory)
-    print(f"Max memory usage: {max_memory} MiB at timestep {max_timestep}")
+    # print(f"Max memory usage: {max_memory} MiB at timestep {max_timestep}")
     # Plot the cumulative memory usage
     fig, ax = plt.subplots()
     ax.step(times, cumulative_memory, where="pre")
@@ -264,31 +263,32 @@ def add_schedule_rectangles(ax, relevant_nodes):
         rect = patches.Rectangle(
             (x_fig, 1.02),
             x_shift_per_node,
-            0.3,
+            0.15,
             facecolor=color,
             edgecolor="black",
             transform=ax.transAxes,
             clip_on=False,
         )
-        rotation = 0 if len(node) <= 7 else 65
+        if node == "Exp(ΔA)*h_t":
+            node = "Exp(ΔA)\n* h_t"
         ax.text(
             x_fig + x_shift_per_node / 2,
-            1.17,
+            1.095,
             node,
             ha="center",
             va="center",
-            rotation=rotation,
+            rotation=0,
             transform=ax.transAxes,
         )
         ax.add_patch(rect)
         x_fig += x_shift_per_node
     # Add label to the schedule all the way on the left rotated 90 degrees
-    ax.text(-0.043, 1.17, "Schedule", ha="center", va="center", rotation=90, transform=ax.transAxes)
+    ax.text(-0.043, 1.095, "Schedule", ha="center", va="center", rotation=90, transform=ax.transAxes)
 
 
 def plot_tensor_lifetime_with_schedule(lifetimes: list[Lifetime], max_timestep: int, tensors_at_max: list[str]):
     # Plot the tensor lifetimes as a Gantt chart with the schedule on top
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6.4, 4))
     ax.grid(True, axis="x")
     total_size = 0
     mid_ys = {}
@@ -310,19 +310,21 @@ def plot_tensor_lifetime_with_schedule(lifetimes: list[Lifetime], max_timestep: 
     ax.set_ylim(0, total_size)
     ax.set_yticks([])
     ax.set_yticklabels([])
-    ax.set_ylabel("Tensor Lifetimes", labelpad=10)
+    ax.set_xlabel("Tensor Lifetimes")
+    ax.set_ylabel("Tensor Size", labelpad=10)
     # Add the schedule on top
     relevant_nodes = [n for n in NODES if n not in CONSTANT_NODES]  # Skip the constant nodes
     ax.set_xticks([get_start(node) for node in relevant_nodes])
     ax.set_xticklabels([" " for node in relevant_nodes])
     add_schedule_rectangles(ax, relevant_nodes)
     # Add vertical red line at max_timestep
+    max_timestep += 3  # manually place it a bit later
     ax.axvline(x=max_timestep, color="red", linestyle="--", zorder=5)
     # Add double-ended arrow line vertically at x = 70 going from 0 to L*D*N and annotate it with "D*N" vertically
     ax.annotate("", xy=(55, 0), xytext=(55, L * D * N), arrowprops=dict(arrowstyle="<->", color="red"))
     ax.text(56.2, L * D * N / 2, "D*N", color="red", ha="left", va="center")
     # Add 'Max memory usage' annotation alongside the red line vertically at height of 6.5*L*D*N
-    ax.text(max_timestep - 0.2, 7 * L * D * N, "Max memory usage", color="red", ha="right", va="center", rotation=90)
+    ax.text(max_timestep - 0.2, 7 * L * D * N, "Max mem usage", color="red", ha="right", va="center", rotation=90)
 
     os.makedirs("outputs/figures", exist_ok=True)
     # fig.savefig("outputs/figures/tensor_lifetimes.pdf", bbox_inches="tight")
@@ -347,7 +349,7 @@ def main():
     plot_cumulative_memory_usage(times, cumulative_memory)
     max_timestep, _ = get_max_timestep_and_memory_usage_MiB(times, cumulative_memory)
     tensors_at_max: list[str] = get_alive_tensors(lifetimes, max_timestep)
-    print(f"Alive tensors at max timestep ({max_timestep})")
+    # print(f"Alive tensors at max timestep ({max_timestep})")
     # for tensor in tensors_at_max:
     #     tensor_size_MiB = convert_bits_to_MiB(NODE_SIZES[tensor] * PRECISION)
     #     print(f"{tensor} ({tensor_size_MiB} MiB)")

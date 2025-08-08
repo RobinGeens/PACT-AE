@@ -3,12 +3,12 @@
 # Requires: simple_latency_analysis.py
 python scripts/op_distribution.py 
 
-# Figure 4 (right) (latency.png)
-# Generated with simple_latency_analysis.py
-
 # Figure 4 (left and middle) (roofline.png, op_distribution.png)
 # Requires: simple_latency_analysis.py
 python scripts/roofline_per_op_type.py
+
+# Figure 4 (right) (latency.png)
+# Generated with simple_latency_analysis.py
 
 # Figure 9 (layer_stacks_sweep.png)
 # Requires: sweep_layer_stacks.py

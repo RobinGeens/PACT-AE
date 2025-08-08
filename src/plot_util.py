@@ -101,7 +101,9 @@ class BarPlotter:
         self.horizontal_line = horizontal_line
         self.figsize = figsize
 
-    def construct_subplot(self, ax: Any, df: pd.DataFrame, add_xticks_and_label: bool = True, add_legend: bool = True):
+    def construct_subplot(
+        self, ax: Any, df: pd.DataFrame, add_xticks_and_label: bool = True, add_legend: bool = True, draw_line=False
+    ):
         # Number of groups is number of different seq_len fields in df
         assert len(df) == len(self.groups) * len(self.models)
 
@@ -112,6 +114,7 @@ class BarPlotter:
 
         # Make bars
         max_height = 0
+        line_styles = ["--", ":"]
         for i, model in enumerate(self.models):
             bottom = np.zeros(len(self.groups))
             positions = indices + i * (self.bar_width + self.bar_spacing)
@@ -130,6 +133,10 @@ class BarPlotter:
                 bottom += heights
             max_height = max(max_height, np.max(bottom))
 
+            # Add line on top of the bars to show scaling across sequence lengths
+            if draw_line:
+                ax.plot(positions, bottom, color="black", linestyle=line_styles[i])
+
             # Add text above bar
             if self.bar_text:
                 bar_heights = bottom
@@ -142,7 +149,7 @@ class BarPlotter:
         xtick_positions = [i + self.bar_width / 2 for i in indices]
         if add_xticks_and_label:
             xtick_labels = [s.lstrip("L=") for s in self.groups]
-            x_label = "Sequence length (tokens)"
+            x_label = "Sequence length [tokens]"
         else:
             xtick_labels = ["" for i in indices]
             x_label = ""
@@ -276,20 +283,42 @@ class BarPlotter:
         ax.legend(ncol=self.legend_cols, fontsize=14, loc=self.legend_loc)
 
     def construct_subplot_line_for_four_subplots(
-        self, ax: Any, df: pd.DataFrame, x_axis: str, y_axis: str, y_axis_label: str, log_x=False, log_y=False
+        self,
+        ax: Any,
+        df: pd.DataFrame,
+        x_axis: str,
+        y_axis: str,
+        y_axis_label: str,
+        log_x=False,
+        log_y=False,
+        draw_ours=False,
+        colors=None,
     ):
         """
         Draw a line for each model with x axis and y axis attributes as given.
         """
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][: len(self.models)]
+        if not colors:
+            colors = {
+                model: color for model, color in zip(self.models, plt.rcParams["axes.prop_cycle"].by_key()["color"])
+            }
         assert len(df) == len(self.models) * len(self.groups)
         for i, model in enumerate(self.models):
             df_model = df[df["model"] == model]
             x = np.array(range(len(df_model[x_axis])))  # To get equally spaced x-ticks
             x_labels = np.array([int(i) for i in df_model[x_axis]])
             y = np.array(df_model[y_axis])
-            label = "Transformer" if "OPT" in model else "SSM"
-            ax.plot(x, y, label=label, marker="o", color=colors[i])
+            if "OPT" in model:
+                label = "Transformer"
+            elif "mamba" in model.lower():
+                label = "SSM"
+            elif model == "Ours":
+                if not draw_ours:
+                    continue
+                label = "SSM + Our Fusion"
+            else:
+                label = model
+            color = colors[model]
+            ax.plot(x, y, label=label, marker="o", color=color)
         if log_y:
             ax.set_yscale("log")
         ax.set_ylabel(y_axis_label, fontsize=16)
@@ -304,7 +333,7 @@ class BarPlotter:
         ax.set_xticklabels(x_labels, fontsize=self.xtick_fontsize, ha=self.xtick_ha, rotation=self.xtick_rotation)
         ax.tick_params(axis="y", labelsize=self.ytick_fontsize)
         ax.set_title(self.title, fontsize=16)
-        ax.legend(ncol=self.legend_cols, fontsize=14, loc=self.legend_loc)
+        ax.legend(ncol=self.legend_cols, fontsize=self.legend_fontsize, loc=self.legend_loc)
         # ax.set_ylim(bottom=0)
 
     def plot(self, df: pd.DataFrame, filename: str) -> None:
@@ -330,18 +359,17 @@ class BarPlotter:
         df_prefill.iloc[:, 3:] /= scaling_factors[0]
         self.ylabel = y_labels[0] if y_labels else self.ylabel
         self.title = "Prefill"
-        self.construct_subplot(ax0, df_prefill, add_xticks_and_label=False, add_legend=add_legends[0])
+        self.construct_subplot(ax0, df_prefill, add_xticks_and_label=False, add_legend=add_legends[0], draw_line=False)
         # ax0.set_title('Prefill', fontsize=18)
         # Plot decode subplot
         df_decode = df[df["stage"] == "decode"]
         df_decode.iloc[:, 3:] /= scaling_factors[1]
         self.ylabel = y_labels[1] if y_labels else self.ylabel
         self.title = "Decode"
-        self.construct_subplot(ax1, df_decode, add_legend=add_legends[1])
+        self.construct_subplot(ax1, df_decode, add_legend=add_legends[1], draw_line=False)
         # ax1.set_title('Decode', fontsize=18)
         plt.yscale(self.scale)  # type: ignore
         plt.tight_layout()
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
         plt.savefig(filename, bbox_inches="tight", transparent=False)  # type: ignore
 
     def plot_line(self, df: pd.DataFrame, x_axis: str, y_axis: str, filename: str) -> None:
@@ -378,7 +406,7 @@ class BarPlotter:
         plt.tight_layout()
         plt.savefig(filename, bbox_inches="tight", transparent=False)  # type: ignore
 
-    def plot_line_four_subplots(self, df: pd.DataFrame, filename: str) -> None:
+    def plot_line_four_subplots(self, df: pd.DataFrame, colors: dict[str, str], filename: str) -> None:
         plt.rc("font", family="DejaVu Serif")  # type: ignore
         _, axs = plt.subplots(nrows=2, ncols=2, figsize=(7, 5), sharex=True)  # type: ignore
         # Plot prefill ops subplot
@@ -388,17 +416,18 @@ class BarPlotter:
         df_decode = df[df["stage"] == "decode"]
         dfs = [df_prefill, df_decode, df_prefill, df_decode]
         y_axes = ["total_ops", "total_ops", "total_mem_access", "total_mem_access"]
-        y_axes_labels = ["Operations", "", "Mem Accesses (bits)", ""]
+        y_axes_labels = ["Operations", "", "Mem Accesses [byte]", ""]
+        draw_ours = [False, False, True, True]
         for i, ax in enumerate(axs.flat):
             self.construct_subplot_line_for_four_subplots(
-                ax, dfs[i], "seq_len", y_axes[i], y_axes_labels[i], log_x=False
+                ax, dfs[i], "seq_len", y_axes[i], y_axes_labels[i], log_x=False, draw_ours=draw_ours[i], colors=colors
             )
             if i == 0:
                 ax.set_title("Prefill Stage", fontsize=16, pad=10)
             elif i == 1:
                 ax.set_title("Decode Stage", fontsize=16, pad=10)
             if i in [2, 3]:
-                ax.set_xlabel("Sequence length (tokens)", fontsize=14)
+                ax.set_xlabel("Sequence length [tokens]", fontsize=14)
 
         plt.yscale(self.scale)  # type: ignore
         plt.tight_layout()

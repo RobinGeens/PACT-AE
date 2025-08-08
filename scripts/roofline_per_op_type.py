@@ -121,7 +121,7 @@ def plot_op_distribution(df):
         groups=[f"L={seq_len}" for seq_len in SEQ_LENS],
         bars=[model.name for model in MODELS],
         sections=op_types,
-        ylabel="Operation Distribution (%)",
+        ylabel="Operation Distribution [%]",
         xtick_rotation=0,
         xtick_ha="center",
         legend_cols=len(op_types),
@@ -135,7 +135,7 @@ def plot_op_distribution(df):
     plotter.plot_two_subplots(
         df_normalized,
         filename="outputs/figures/op_distribution.png",
-        y_labels=["Operation Distribution (%)", "Operation Distribution (%)"],
+        y_labels=["Operation Distribution [%]", "Operation Distribution [%]"],
         scaling_factors=[1, 1],
         add_legends=[False, False],
     )
@@ -214,9 +214,9 @@ def plot_roofline(df_ai, df_performance):
                     handles.append(h)
         ax.tick_params(axis="x", labelsize=XTICK_FONTSIZE)
         ax.tick_params(axis="y", labelsize=YTICK_FONTSIZE)
-        ax.set_ylabel("Performance (GOPS)", fontsize=YLABEL_FONTSIZE)  # same as ops/cycle at 1 GHz
+        ax.set_ylabel("Performance [GOPS]", fontsize=YLABEL_FONTSIZE)  # same as ops/cycle at 1 GHz
         ax.set_title(f"{stage.capitalize()}, Sequence length = {seq_len}", fontsize=AXIS_TITLE_FONTSIZE)
-    axs[-1].set_xlabel(f"Operational Intensity ({OI_UNIT})", fontsize=XLABEL_FONTSIZE)
+    axs[-1].set_xlabel(f"Operational Intensity [{OI_UNIT}]", fontsize=XLABEL_FONTSIZE)
 
     os.makedirs("outputs/figures", exist_ok=True)
     fig.savefig("outputs/figures/roofline.png", bbox_inches="tight")

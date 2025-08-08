@@ -55,6 +55,7 @@ LAYER_TO_TYPE = {
     "mul_y_z": "Elementwise",
 }
 
+
 TYPE_ORDER = [
     "Normalization",
     "Activation",
@@ -62,6 +63,15 @@ TYPE_ORDER = [
     "Projection",
     "Attention",
     "SSM",
+]
+FUSED_LAYER_NAMES_MAMBA = [
+    "mul_dBx",
+    "Exp",
+    "mul_delta_A",
+    "mul_delta_B",
+    "mul_h_dA",
+    "add_dBx",
+    "mul_h_C",
 ]
 
 COLOR_PALETTE = seaborn.color_palette("pastel")
@@ -256,7 +266,11 @@ def scale_ops_with_num_layers(df_op):
     return df
 
 
-def generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai):
+def is_fused_layer(layer_name: str):
+    return any((part in layer_name) for part in FUSED_LAYER_NAMES_MAMBA)
+
+
+def generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai, mem_scaling=1):
     data = []
     for i in range(len(df_op)):
         op_row = df_op.iloc[i]
@@ -269,7 +283,7 @@ def generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai):
         ops = get_non_nan_series(op_row).to_dict()
         total_ops = sum(ops.values())
         ais = get_non_nan_series(ai_row).to_dict()
-        mem_accesses = {k: ops[k] / ais[k] for k in ops.keys()}
+        mem_accesses = {k: (ops[k] / ais[k]) / mem_scaling for k in ops.keys()}
         total_mem_accesses = sum(mem_accesses.values())
         row = {"model": model, "seq_len": seq_len, "stage": stage}
         row.update({"total_ops": total_ops, "total_mem_access": total_mem_accesses})
@@ -277,6 +291,21 @@ def generate_total_ops_and_mem_accesses_dataframe(df_op, df_ai):
             {"total_ops_per_token": total_ops / seq_len, "total_mem_access_per_token": total_mem_accesses / seq_len}
         )
         data.append(row)
+        if "mamba" in model.lower():
+            # Generate a row with total_ops, total_ops_per_token, total_mem_access, total_mem_access_per_token
+            # Layers matching entries in FUSED_LAYER_NAMES_MAMBA get infinite AI (assume they are fused)
+            ais_ours = {layer: ai if not is_fused_layer(layer) else float("inf") for layer, ai in ais.items()}
+            mem_accesses_ours = {k: (ops[k] / ais_ours[k]) / mem_scaling for k in ops.keys()}
+            total_mem_accesses_ours = sum(mem_accesses_ours.values())
+            row_ours = {"model": "Ours", "seq_len": seq_len, "stage": stage}
+            row_ours.update({"total_ops": total_ops, "total_mem_access": total_mem_accesses_ours})
+            row_ours.update(
+                {
+                    "total_ops_per_token": total_ops / seq_len,
+                    "total_mem_access_per_token": total_mem_accesses_ours / seq_len,
+                }
+            )
+            data.append(row_ours)
     df = pd.DataFrame(data)
     return df
 
