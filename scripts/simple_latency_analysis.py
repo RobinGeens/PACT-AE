@@ -56,6 +56,8 @@ LATENCY_CSV_PATH = "outputs/csv/latency_distribution.csv"
 
 def plot_stacked_bars_by_group(df: pd.DataFrame, all_op_types: list, fig_path: str):
     """Plot the stacked bar chart for latency by operator type"""
+    os.makedirs(os.path.dirname(fig_path), exist_ok=True)
+
     # Plot
     colors = [OP_TYPE_COLORS[op_type] for op_type in all_op_types]
     plotter = BarPlotter(
